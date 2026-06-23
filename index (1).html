@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MyApp</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f14;
+      --surface: #161920;
+      --surface2: #1e2230;
+      --border: #2a2f3e;
+      --accent: #6c63ff;
+      --accent2: #a78bfa;
+      --success: #22d3a5;
+      --danger: #f87171;
+      --warn: #fbbf24;
+      --text: #e8eaf0;
+      --muted: #8891a8;
+      --radius: 12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* AUTH PAGE */
+    #auth-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at 60% 20%, #1a1540 0%, var(--bg) 70%);
+    }
+
+    .auth-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    }
+
+    .auth-logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent2);
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .auth-sub {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 36px;
+    }
+
+    .tab-row {
+      display: flex;
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 28px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    input[type="email"], input[type="password"], input[type="text"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 15px;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: 18px;
+      font-family: 'Inter', sans-serif;
+    }
+
+    input:focus { border-color: var(--accent); }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: #5a52e8; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-sm {
+      width: auto;
+      padding: 8px 16px;
+      font-size: 13px;
+      border-radius: 8px;
+    }
+
+    .btn-ghost {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover { background: var(--border); }
+
+    .msg {
+      font-size: 13px;
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .msg.error { background: rgba(248,113,113,0.1); color: var(--danger); border: 1px solid rgba(248,113,113,0.2); }
+    .msg.success { background: rgba(34,211,165,0.1); color: var(--success); border: 1px solid rgba(34,211,165,0.2); }
+
+    /* APP LAYOUT */
+    #app-screen { display: none; min-height: 100vh; }
+
+    .navbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent2);
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .user-pill {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: var(--muted);
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn-logout {
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.2);
+      color: var(--danger);
+      padding: 7px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-logout:hover { background: rgba(248,113,113,0.2); }
+
+    .main-content {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    .page-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .page-sub {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    /* NAV TABS */
+    .nav-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 6px;
+      width: fit-content;
+    }
+
+    .nav-tab {
+      padding: 9px 20px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .nav-tab.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* CARDS */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+
+    /* WALLET */
+    .wallet-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .balance-card {
+      background: linear-gradient(135deg, #1e1a4a 0%, #2d1f5e 100%);
+      border: 1px solid #3d2f8a;
+      border-radius: 16px;
+      padding: 28px;
+    }
+
+    .balance-label {
+      font-size: 12px;
+      color: var(--accent2);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+
+    .balance-amount {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 38px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -1px;
+    }
+
+    .balance-currency {
+      font-size: 18px;
+      color: var(--accent2);
+      margin-right: 4px;
+    }
+
+    .wallet-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .btn-wallet {
+      flex: 1;
+      padding: 11px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .btn-add { background: var(--success); color: #0a2a22; }
+    .btn-add:hover { filter: brightness(1.1); }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .input-row input { margin-bottom: 0; flex: 1; }
+
+    /* TRANSACTIONS */
+    .tx-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .tx-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+    }
+
+    .tx-left { display: flex; align-items: center; gap: 14px; }
+
+    .tx-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+    }
+
+    .tx-icon.credit { background: rgba(34,211,165,0.1); }
+    .tx-icon.debit { background: rgba(248,113,113,0.1); }
+
+    .tx-desc { font-size: 14px; font-weight: 500; }
+    .tx-date { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .tx-amount {
+      font-size: 15px;
+      font-weight: 700;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .tx-amount.credit { color: var(--success); }
+    .tx-amount.debit { color: var(--danger); }
+
+    /* ORDERS */
+    .order-list { display: flex; flex-direction: column; gap: 14px; }
+
+    .order-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .order-id {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .order-date {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .badge {
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-delivered { background: rgba(34,211,165,0.1); color: var(--success); }
+    .badge-pending { background: rgba(251,191,36,0.1); color: var(--warn); }
+    .badge-cancelled { background: rgba(248,113,113,0.1); color: var(--danger); }
+    .badge-processing { background: rgba(108,99,255,0.15); color: var(--accent2); }
+
+    .order-items {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+
+    .order-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .order-total {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    /* EMPTY */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+
+    .empty-icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-text { font-size: 16px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
+    .empty-sub { font-size: 14px; }
+
+    /* SPINNER */
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hidden { display: none !important; }
+
+    /* PROFILE */
+    .profile-avatar {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 700;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+
+    .profile-name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 22px; font-weight: 700; margin-bottom: 4px;
+    }
+
+    .profile-email { font-size: 14px; color: var(--muted); }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .info-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+
+    .info-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+    .info-value { font-size: 14px; font-weight: 500; }
+  </style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">⬡ MyApp</div>
+    <div class="auth-sub">Sign in to manage your orders & wallet</div>
+
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="switchTab('login')">Sign In</button>
+      <button class="tab-btn" onclick="switchTab('signup')">Create Account</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="login-form">
+      <label>Email address</label>
+      <input type="email" id="login-email" placeholder="you@example.com" />
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••" />
+      <button class="btn btn-primary" onclick="handleLogin()">Sign In</button>
+      <div id="login-msg"></div>
+    </div>
+
+    <!-- SIGNUP -->
+    <div id="signup-form" class="hidden">
+      <label>Full name</label>
+      <input type="text" id="signup-name" placeholder="Your name" />
+      <label>Email address</label>
+      <input type="email" id="signup-email" placeholder="you@example.com" />
+      <label>Password</label>
+      <input type="password" id="signup-password" placeholder="Min 6 characters" />
+      <button class="btn btn-primary" onclick="handleSignup()">Create Account</button>
+      <div id="signup-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen">
+  <nav class="navbar">
+    <div class="nav-logo">⬡ MyApp</div>
+    <div class="nav-right">
+      <div class="user-pill" id="nav-user-email">user@example.com</div>
+      <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="page-title" id="greeting">Welcome back</div>
+    <div class="page-sub">Manage your orders, wallet, and account details.</div>
+
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showSection('dashboard')">Dashboard</button>
+      <button class="nav-tab" onclick="showSection('orders')">My Orders</button>
+      <button class="nav-tab" onclick="showSection('wallet')">Wallet</button>
+      <button class="nav-tab" onclick="showSection('profile')">Profile</button>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="section-dashboard">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px;">
+        <div class="card" style="border-left:3px solid var(--accent);">
+          <div class="card-title">Wallet Balance</div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;" id="dash-balance">₹0.00</div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--success);">
+          <div class="card-title">Total Orders</div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;" id="dash-orders">0</div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--warn);">
+          <div class="card-title">Pending Orders</div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;" id="dash-pending">0</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Recent Orders</div>
+        <div id="dash-recent-orders"><div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">No orders yet</div></div></div>
+      </div>
+    </div>
+
+    <!-- ORDERS -->
+    <div id="section-orders" class="hidden">
+      <div class="card-title" style="margin-bottom:16px;">All Orders</div>
+      <div id="orders-list" class="order-list">
+        <div class="empty-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- WALLET -->
+    <div id="section-wallet" class="hidden">
+      <div class="wallet-grid">
+        <div class="balance-card">
+          <div class="balance-label">Available Balance</div>
+          <div class="balance-amount"><span class="balance-currency">₹</span><span id="wallet-balance-display">0.00</span></div>
+          <div style="font-size:13px;color:var(--accent2);margin-top:8px;" id="wallet-email-tag"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Add Funds</div>
+          <div class="input-row">
+            <input type="text" id="topup-amount" placeholder="Enter amount (₹)" />
+            <button class="btn btn-primary btn-sm" onclick="addFunds()">Add</button>
+          </div>
+          <div id="topup-msg" style="font-size:13px;margin-top:8px;"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Transaction History</div>
+        <div id="tx-list" class="tx-list">
+          <div class="empty-state"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div id="section-profile" class="hidden">
+      <div class="card">
+        <div class="profile-avatar" id="profile-avatar">U</div>
+        <div class="profile-name" id="profile-name">—</div>
+        <div class="profile-email" id="profile-email">—</div>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">User ID</div>
+            <div class="info-value" id="profile-id" style="font-size:11px;word-break:break-all;">—</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Member Since</div>
+            <div class="info-value" id="profile-joined">—</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Total Orders</div>
+            <div class="info-value" id="profile-orders">0</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Wallet Balance</div>
+            <div class="info-value" id="profile-balance">₹0.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const SUPA_URL = 'https://cwhtmomweslynqyjildp.supabase.co';
+  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aHRtb213ZXNseW5xeWppbGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMjA1MTgsImV4cCI6MjA5NzY5NjUxOH0.W6WtVBsNspCjZUIcj55t7DoxhtxVljftT4oZqjXmiu8';
+  const { createClient } = supabase;
+  const sb = createClient(SUPA_URL, SUPA_KEY);
+
+  let currentUser = null;
+
+  // ─── AUTH ──────────────────────────────────────────────
+  function switchTab(tab) {
+    document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+    document.getElementById('signup-form').classList.toggle('hidden', tab !== 'signup');
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+      b.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'signup'));
+    });
+  }
+
+  function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = 'msg ' + type;
+  }
+
+  async function handleLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-password').value;
+    if (!email || !pass) return showMsg('login-msg', 'Please fill in all fields.', 'error');
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) return showMsg('login-msg', error.message, 'error');
+    loadApp(data.user);
+  }
+
+  async function handleSignup() {
+    const name = document.getElementById('signup-name').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const pass = document.getElementById('signup-password').value;
+    if (!name || !email || !pass) return showMsg('signup-msg', 'Please fill in all fields.', 'error');
+    const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
+    if (error) return showMsg('signup-msg', error.message, 'error');
+    showMsg('signup-msg', 'Account created! You can now sign in.', 'success');
+    // Create wallet row
+    if (data.user) {
+      await sb.from('wallets').upsert({ user_id: data.user.id, balance: 0 });
+    }
+  }
+
+  async function handleLogout() {
+    await sb.auth.signOut();
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('app-screen').style.display = 'none';
+    currentUser = null;
+  }
+
+  // ─── LOAD APP ──────────────────────────────────────────
+  async function loadApp(user) {
+    currentUser = user;
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+
+    const name = user.user_metadata?.full_name || user.email.split('@')[0];
+    document.getElementById('nav-user-email').textContent = user.email;
+    document.getElementById('greeting').textContent = `Welcome back, ${name} 👋`;
+    document.getElementById('wallet-email-tag').textContent = user.email;
+
+    // Profile
+    document.getElementById('profile-avatar').textContent = name[0].toUpperCase();
+    document.getElementById('profile-name').textContent = name;
+    document.getElementById('profile-email').textContent = user.email;
+    document.getElementById('profile-id').textContent = user.id;
+    document.getElementById('profile-joined').textContent = new Date(user.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    await Promise.all([loadWallet(), loadOrders()]);
+    showSection('dashboard');
+  }
+
+  // ─── WALLET ────────────────────────────────────────────
+  async function loadWallet() {
+    const { data } = await sb.from('wallets').select('balance').eq('user_id', currentUser.id).single();
+    const bal = data?.balance ?? 0;
+    const fmt = '₹' + Number(bal).toFixed(2);
+    document.getElementById('wallet-balance-display').textContent = Number(bal).toFixed(2);
+    document.getElementById('dash-balance').textContent = fmt;
+    document.getElementById('profile-balance').textContent = fmt;
+
+    // Transactions
+    const { data: txs } = await sb.from('transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(20);
+    renderTransactions(txs || []);
+  }
+
+  function renderTransactions(txs) {
+    const el = document.getElementById('tx-list');
+    if (!txs.length) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon">💳</div><div class="empty-text">No transactions yet</div><div class="empty-sub">Add funds to get started</div></div>`;
+      return;
+    }
+    el.innerHTML = txs.map(t => `
+      <div class="tx-item">
+        <div class="tx-left">
+          <div class="tx-icon ${t.type}">${t.type === 'credit' ? '↑' : '↓'}</div>
+          <div>
+            <div class="tx-desc">${t.description || (t.type === 'credit' ? 'Funds Added' : 'Payment')}</div>
+            <div class="tx-date">${new Date(t.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
+          </div>
+        </div>
+        <div class="tx-amount ${t.type}">${t.type === 'credit' ? '+' : '-'}₹${Number(t.amount).toFixed(2)}</div>
+      </div>`).join('');
+  }
+
+  async function addFunds() {
+    const amt = parseFloat(document.getElementById('topup-amount').value);
+    if (!amt || amt <= 0) return showTopupMsg('Enter a valid amount', 'error');
+    const { data: wallet } = await sb.from('wallets').select('balance').eq('user_id', currentUser.id).single();
+    const newBal = (wallet?.balance || 0) + amt;
+    await sb.from('wallets').upsert({ user_id: currentUser.id, balance: newBal });
+    await sb.from('transactions').insert({ user_id: currentUser.id, amount: amt, type: 'credit', description: 'Funds Added' });
+    document.getElementById('topup-amount').value = '';
+    showTopupMsg(`₹${amt.toFixed(2)} added successfully!`, 'success');
+    loadWallet();
+  }
+
+  function showTopupMsg(text, type) {
+    const el = document.getElementById('topup-msg');
+    el.textContent = text;
+    el.style.color = type === 'success' ? 'var(--success)' : 'var(--danger)';
+    setTimeout(() => el.textContent = '', 3000);
+  }
+
+  // ─── ORDERS ────────────────────────────────────────────
+  async function loadOrders() {
+    const { data: orders } = await sb.from('orders').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+    const all = orders || [];
+
+    document.getElementById('dash-orders').textContent = all.length;
+    document.getElementById('profile-orders').textContent = all.length;
+    document.getElementById('dash-pending').textContent = all.filter(o => o.status === 'pending').length;
+
+    renderOrders(all, 'orders-list');
+    renderOrders(all.slice(0, 3), 'dash-recent-orders');
+  }
+
+  function renderOrders(orders, targetId) {
+    const el = document.getElementById(targetId);
+    if (!orders.length) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">No orders yet</div><div class="empty-sub">Your order history will appear here</div></div>`;
+      return;
+    }
+    el.innerHTML = orders.map(o => `
+      <div class="order-card">
+        <div class="order-header">
+          <div>
+            <div class="order-id">#${o.id.toString().padStart(6, '0')}</div>
+            <div class="order-date">${new Date(o.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</div>
+          </div>
+          <div class="badge badge-${o.status || 'pending'}">${(o.status || 'Pending').charAt(0).toUpperCase() + (o.status || 'pending').slice(1)}</div>
+        </div>
+        <div class="order-items">${o.items || 'Order details not available'}</div>
+        <div class="order-footer">
+          <div style="font-size:13px;color:var(--muted);">${o.item_count || 1} item(s)</div>
+          <div class="order-total">₹${Number(o.total || 0).toFixed(2)}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  // ─── NAVIGATION ────────────────────────────────────────
+  function showSection(name) {
+    ['dashboard','orders','wallet','profile'].forEach(s => {
+      document.getElementById('section-' + s).classList.toggle('hidden', s !== name);
+    });
+    document.querySelectorAll('.nav-tab').forEach((t, i) => {
+      const tabs = ['dashboard','orders','wallet','profile'];
+      t.classList.toggle('active', tabs[i] === name);
+    });
+  }
+
+  // ─── INIT ──────────────────────────────────────────────
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session?.user) loadApp(session.user);
+  })();
+</script>
+</body>
+</html>

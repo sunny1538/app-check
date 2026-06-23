@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel — MyApp</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0c10;
+      --surface: #111318;
+      --surface2: #181c25;
+      --border: #252b3b;
+      --accent: #f97316;
+      --accent2: #fb923c;
+      --success: #22d3a5;
+      --danger: #f87171;
+      --warn: #fbbf24;
+      --info: #60a5fa;
+      --text: #e8eaf0;
+      --muted: #7a8399;
+      --radius: 12px;
+    }
+
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
+
+    /* AUTH */
+    #admin-auth {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at 50% 20%, #1a0f00 0%, var(--bg) 70%);
+    }
+
+    .auth-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    }
+
+    .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(249,115,22,0.1);
+      border: 1px solid rgba(249,115,22,0.3);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .auth-logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent2);
+      margin-bottom: 6px;
+    }
+
+    .auth-sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+
+    input[type="email"], input[type="password"], input[type="text"], select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 15px;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: 18px;
+      font-family: 'Inter', sans-serif;
+    }
+
+    input:focus, select:focus { border-color: var(--accent); }
+
+    select option { background: var(--surface2); }
+
+    .btn {
+      padding: 13px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .btn-block { width: 100%; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #e86007; transform: translateY(-1px); }
+    .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--border); }
+    .btn-danger { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2); color: var(--danger); }
+    .btn-sm { padding: 7px 14px; font-size: 12px; border-radius: 8px; }
+
+    .msg { font-size: 13px; margin-top: 12px; padding: 10px 14px; border-radius: 8px; text-align: center; }
+    .msg.error { background: rgba(248,113,113,0.1); color: var(--danger); }
+    .msg.success { background: rgba(34,211,165,0.1); color: var(--success); }
+
+    /* LAYOUT */
+    #admin-panel { display: none; }
+
+    .admin-navbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+
+    .nav-logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent2);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-logo span {
+      background: rgba(249,115,22,0.15);
+      border: 1px solid rgba(249,115,22,0.3);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+
+    .admin-pill {
+      background: rgba(249,115,22,0.1);
+      border: 1px solid rgba(249,115,22,0.2);
+      color: var(--accent);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .btn-logout { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2); color: var(--danger); padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .btn-logout:hover { background: rgba(248,113,113,0.2); }
+
+    .admin-content { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+
+    /* STATS */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+    }
+
+    .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; font-weight: 600; }
+    .stat-val { font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; }
+    .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* TABS */
+    .admin-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 6px;
+      width: fit-content;
+      margin-bottom: 28px;
+    }
+
+    .admin-tab {
+      padding: 9px 22px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .admin-tab.active { background: var(--accent); color: #fff; }
+
+    /* TABLE */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .card-header {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-title { font-size: 15px; font-weight: 600; }
+    .card-count { font-size: 12px; color: var(--muted); }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { background: var(--surface2); padding: 12px 18px; text-align: left; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+    td { padding: 14px 18px; border-top: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
+    tr:hover td { background: rgba(255,255,255,0.01); }
+
+    .badge { padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .badge-delivered { background: rgba(34,211,165,0.1); color: var(--success); }
+    .badge-pending { background: rgba(251,191,36,0.1); color: var(--warn); }
+    .badge-cancelled { background: rgba(248,113,113,0.1); color: var(--danger); }
+    .badge-processing { background: rgba(96,165,250,0.1); color: var(--info); }
+    .badge-admin { background: rgba(249,115,22,0.15); color: var(--accent); }
+    .badge-user { background: rgba(167,139,250,0.1); color: #a78bfa; }
+
+    .avatar-cell {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: #fff;
+    }
+
+    .cell-main { font-weight: 500; }
+    .cell-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* MODALS */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 32px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    }
+
+    .modal-title { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .modal-sub { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+    .modal-actions .btn { flex: 1; }
+
+    .hidden { display: none !important; }
+
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.15); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-text { font-size: 15px; color: var(--text); font-weight: 500; }
+
+    /* search */
+    .search-bar {
+      display: flex; gap: 12px; margin-bottom: 20px;
+    }
+
+    .search-bar input {
+      flex: 1; margin-bottom: 0;
+    }
+
+    .filter-select { width: auto; margin-bottom: 0; min-width: 140px; }
+
+    .action-row { display: flex; gap: 8px; }
+  </style>
+</head>
+<body>
+
+<!-- ADMIN AUTH -->
+<div id="admin-auth">
+  <div class="auth-box">
+    <div class="admin-badge">🔐 Admin Access</div>
+    <div class="auth-logo">⬡ MyApp Admin</div>
+    <div class="auth-sub">Restricted access — administrators only</div>
+
+    <label>Admin Email</label>
+    <input type="email" id="admin-email" placeholder="admin@example.com"/>
+    <label>Password</label>
+    <input type="password" id="admin-password" placeholder="••••••••"/>
+    <button class="btn btn-primary btn-block" onclick="adminLogin()">Access Admin Panel</button>
+    <div id="admin-auth-msg"></div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel">
+  <nav class="admin-navbar">
+    <div class="nav-logo">⬡ MyApp <span>Admin</span></div>
+    <div class="nav-right">
+      <div class="admin-pill" id="admin-email-display">admin</div>
+      <button class="btn-logout" onclick="adminLogout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="admin-content">
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card" style="border-top:2px solid var(--accent);">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-val" id="stat-users">—</div>
+        <div class="stat-sub">Registered accounts</div>
+      </div>
+      <div class="stat-card" style="border-top:2px solid var(--success);">
+        <div class="stat-label">Total Orders</div>
+        <div class="stat-val" id="stat-orders">—</div>
+        <div class="stat-sub">All time</div>
+      </div>
+      <div class="stat-card" style="border-top:2px solid var(--warn);">
+        <div class="stat-label">Pending Orders</div>
+        <div class="stat-val" id="stat-pending">—</div>
+        <div class="stat-sub">Needs attention</div>
+      </div>
+      <div class="stat-card" style="border-top:2px solid var(--info);">
+        <div class="stat-label">Total Wallets</div>
+        <div class="stat-val" id="stat-balance">—</div>
+        <div class="stat-sub">Sum of all balances</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="admin-tabs">
+      <button class="admin-tab active" onclick="showAdminTab('users')">Users</button>
+      <button class="admin-tab" onclick="showAdminTab('orders')">Orders</button>
+      <button class="admin-tab" onclick="showAdminTab('wallets')">Wallets</button>
+      <button class="admin-tab" onclick="showAdminTab('transactions')">Transactions</button>
+    </div>
+
+    <!-- USERS TAB -->
+    <div id="atab-users">
+      <div class="search-bar">
+        <input type="text" id="user-search" placeholder="Search by email or name…" oninput="filterUsers()" style="margin-bottom:0;"/>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">All Users</div>
+          <div class="card-count" id="user-count">Loading…</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:44px;"></th>
+              <th>User</th>
+              <th>Role</th>
+              <th>Joined</th>
+              <th>Balance</th>
+              <th>Orders</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="7" style="text-align:center;padding:40px;"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ORDERS TAB -->
+    <div id="atab-orders" class="hidden">
+      <div class="search-bar">
+        <input type="text" id="order-search" placeholder="Search orders…" oninput="filterOrders()" style="margin-bottom:0;"/>
+        <select class="filter-select" id="order-status-filter" onchange="filterOrders()">
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="processing">Processing</option>
+          <option value="delivered">Delivered</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">All Orders</div>
+          <div class="card-count" id="order-count">Loading…</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>User</th>
+              <th>Items</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="orders-tbody">
+            <tr><td colspan="7" style="text-align:center;padding:40px;"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- WALLETS TAB -->
+    <div id="atab-wallets" class="hidden">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">User Wallets</div>
+          <div class="card-count" id="wallet-count">Loading…</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Balance</th>
+              <th>Last Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="wallets-tbody">
+            <tr><td colspan="4" style="text-align:center;padding:40px;"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TRANSACTIONS TAB -->
+    <div id="atab-transactions" class="hidden">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">All Transactions</div>
+          <div class="card-count" id="tx-count">Loading…</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Description</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="transactions-tbody">
+            <tr><td colspan="5" style="text-align:center;padding:40px;"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Edit User Balance -->
+<div id="modal-balance" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-title">Adjust Balance</div>
+    <div class="modal-sub" id="modal-balance-sub">Set wallet balance for user</div>
+    <input type="hidden" id="modal-balance-uid"/>
+    <label>New Balance (₹)</label>
+    <input type="text" id="modal-balance-val" placeholder="0.00"/>
+    <div id="modal-balance-msg" style="font-size:13px;color:var(--danger);margin-bottom:8px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-balance')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBalance()">Save Balance</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Update Order Status -->
+<div id="modal-order" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-title">Update Order Status</div>
+    <div class="modal-sub" id="modal-order-sub">Change status for order</div>
+    <input type="hidden" id="modal-order-id"/>
+    <label>Status</label>
+    <select id="modal-order-status">
+      <option value="pending">Pending</option>
+      <option value="processing">Processing</option>
+      <option value="delivered">Delivered</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-order')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveOrderStatus()">Update Status</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPA_URL = 'https://cwhtmomweslynqyjildp.supabase.co';
+  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aHRtb213ZXNseW5xeWppbGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMjA1MTgsImV4cCI6MjA5NzY5NjUxOH0.W6WtVBsNspCjZUIcj55t7DoxhtxVljftT4oZqjXmiu8';
+  const { createClient } = supabase;
+  const sb = createClient(SUPA_URL, SUPA_KEY);
+
+  // ADMIN EMAIL WHITELIST — add your admin emails here
+  const ADMIN_EMAILS = ['admin@myapp.com', 'owner@myapp.com'];
+
+  let allUsers = [], allOrders = [], allWallets = [], allTransactions = [];
+
+  // ─── AUTH ──────────────────────────────────────────────
+  async function adminLogin() {
+    const email = document.getElementById('admin-email').value.trim();
+    const pass = document.getElementById('admin-password').value;
+    if (!email || !pass) return setAuthMsg('Fill in all fields.', 'error');
+
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) return setAuthMsg(error.message, 'error');
+
+    // Check if admin
+    const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
+    const isAdmin = profile?.role === 'admin' || ADMIN_EMAILS.includes(email);
+    if (!isAdmin) {
+      await sb.auth.signOut();
+      return setAuthMsg('Access denied. Admin privileges required.', 'error');
+    }
+
+    document.getElementById('admin-auth').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+    document.getElementById('admin-email-display').textContent = email;
+    loadAdminData();
+  }
+
+  function setAuthMsg(text, type) {
+    const el = document.getElementById('admin-auth-msg');
+    el.textContent = text;
+    el.className = 'msg ' + type;
+  }
+
+  async function adminLogout() {
+    await sb.auth.signOut();
+    location.reload();
+  }
+
+  // ─── LOAD DATA ─────────────────────────────────────────
+  async function loadAdminData() {
+    const [profilesRes, ordersRes, walletsRes, txsRes] = await Promise.all([
+      sb.from('profiles').select('*').order('created_at', { ascending: false }),
+      sb.from('orders').select('*').order('created_at', { ascending: false }),
+      sb.from('wallets').select('*'),
+      sb.from('transactions').select('*').order('created_at', { ascending: false }).limit(200)
+    ]);
+
+    allUsers = profilesRes.data || [];
+    allOrders = ordersRes.data || [];
+    allWallets = walletsRes.data || [];
+    allTransactions = txsRes.data || [];
+
+    // Stats
+    const totalBalance = allWallets.reduce((s, w) => s + (w.balance || 0), 0);
+    document.getElementById('stat-users').textContent = allUsers.length;
+    document.getElementById('stat-orders').textContent = allOrders.length;
+    document.getElementById('stat-pending').textContent = allOrders.filter(o => o.status === 'pending').length;
+    document.getElementById('stat-balance').textContent = '₹' + totalBalance.toFixed(0);
+
+    renderUsers(allUsers);
+    renderOrders(allOrders);
+    renderWallets(allWallets);
+    renderTransactions(allTransactions);
+  }
+
+  // ─── USERS ─────────────────────────────────────────────
+  function renderUsers(users) {
+    document.getElementById('user-count').textContent = users.length + ' users';
+    const tbody = document.getElementById('users-tbody');
+    if (!users.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">👤</div><div class="empty-text">No users found</div></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = users.map(u => {
+      const wallet = allWallets.find(w => w.user_id === u.id);
+      const orderCount = allOrders.filter(o => o.user_id === u.id).length;
+      const name = u.full_name || u.email?.split('@')[0] || 'Unknown';
+      const initials = name[0].toUpperCase();
+      const bal = wallet ? '₹' + Number(wallet.balance || 0).toFixed(2) : '₹0.00';
+      const role = u.role || 'user';
+      return `
+        <tr>
+          <td><div class="avatar-cell">${initials}</div></td>
+          <td>
+            <div class="cell-main">${name}</div>
+            <div class="cell-sub">${u.email || u.id}</div>
+          </td>
+          <td><span class="badge badge-${role}">${role}</span></td>
+          <td>${u.created_at ? new Date(u.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '—'}</td>
+          <td><b>${bal}</b></td>
+          <td>${orderCount}</td>
+          <td>
+            <div class="action-row">
+              <button class="btn btn-ghost btn-sm" onclick="openBalanceModal('${u.id}', '${name}', ${wallet?.balance || 0})">Edit Balance</button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  function filterUsers() {
+    const q = document.getElementById('user-search').value.toLowerCase();
+    renderUsers(allUsers.filter(u => (u.email + (u.full_name || '')).toLowerCase().includes(q)));
+  }
+
+  // ─── ORDERS ────────────────────────────────────────────
+  function renderOrders(orders) {
+    document.getElementById('order-count').textContent = orders.length + ' orders';
+    const tbody = document.getElementById('orders-tbody');
+    if (!orders.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">No orders found</div></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = orders.map(o => {
+      const user = allUsers.find(u => u.id === o.user_id);
+      const userName = user?.full_name || user?.email?.split('@')[0] || o.user_id?.slice(0, 8) + '…';
+      const status = o.status || 'pending';
+      return `
+        <tr>
+          <td><b>#${o.id.toString().padStart(6,'0')}</b></td>
+          <td>${userName}</td>
+          <td style="color:var(--muted);font-size:13px;">${o.items || 'N/A'}</td>
+          <td><b>₹${Number(o.total || 0).toFixed(2)}</b></td>
+          <td><span class="badge badge-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
+          <td style="color:var(--muted);font-size:13px;">${new Date(o.created_at).toLocaleDateString('en-IN')}</td>
+          <td>
+            <button class="btn btn-ghost btn-sm" onclick="openOrderModal('${o.id}', '${status}')">Update</button>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  function filterOrders() {
+    const q = document.getElementById('order-search').value.toLowerCase();
+    const status = document.getElementById('order-status-filter').value;
+    let filtered = allOrders;
+    if (q) filtered = filtered.filter(o => String(o.id).includes(q) || (o.items || '').toLowerCase().includes(q));
+    if (status) filtered = filtered.filter(o => o.status === status);
+    renderOrders(filtered);
+  }
+
+  // ─── WALLETS ───────────────────────────────────────────
+  function renderWallets(wallets) {
+    document.getElementById('wallet-count').textContent = wallets.length + ' wallets';
+    const tbody = document.getElementById('wallets-tbody');
+    if (!wallets.length) {
+      tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">💳</div><div class="empty-text">No wallets found</div></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = wallets.map(w => {
+      const user = allUsers.find(u => u.id === w.user_id);
+      const name = user?.full_name || user?.email || w.user_id?.slice(0, 12) + '…';
+      return `
+        <tr>
+          <td>
+            <div class="cell-main">${name}</div>
+            <div class="cell-sub">${user?.email || ''}</div>
+          </td>
+          <td><b style="font-size:16px;font-family:'Space Grotesk',sans-serif;">₹${Number(w.balance || 0).toFixed(2)}</b></td>
+          <td style="color:var(--muted);font-size:13px;">${w.updated_at ? new Date(w.updated_at).toLocaleDateString('en-IN') : '—'}</td>
+          <td>
+            <button class="btn btn-ghost btn-sm" onclick="openBalanceModal('${w.user_id}', '${name}', ${w.balance || 0})">Edit</button>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  // ─── TRANSACTIONS ──────────────────────────────────────
+  function renderTransactions(txs) {
+    document.getElementById('tx-count').textContent = txs.length + ' transactions';
+    const tbody = document.getElementById('transactions-tbody');
+    if (!txs.length) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">🧾</div><div class="empty-text">No transactions found</div></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = txs.map(t => {
+      const user = allUsers.find(u => u.id === t.user_id);
+      const name = user?.email || t.user_id?.slice(0, 12) + '…';
+      const isCredit = t.type === 'credit';
+      return `
+        <tr>
+          <td style="font-size:13px;">${name}</td>
+          <td><span style="color:${isCredit ? 'var(--success)' : 'var(--danger)'};font-weight:600;">${t.type?.toUpperCase()}</span></td>
+          <td><b style="color:${isCredit ? 'var(--success)' : 'var(--danger)'};">${isCredit ? '+' : '-'}₹${Number(t.amount || 0).toFixed(2)}</b></td>
+          <td style="color:var(--muted);font-size:13px;">${t.description || '—'}</td>
+          <td style="color:var(--muted);font-size:13px;">${new Date(t.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  // ─── MODALS ────────────────────────────────────────────
+  function openBalanceModal(uid, name, currentBalance) {
+    document.getElementById('modal-balance-uid').value = uid;
+    document.getElementById('modal-balance-sub').textContent = `Editing balance for ${name}`;
+    document.getElementById('modal-balance-val').value = currentBalance;
+    document.getElementById('modal-balance-msg').textContent = '';
+    document.getElementById('modal-balance').classList.remove('hidden');
+  }
+
+  async function saveBalance() {
+    const uid = document.getElementById('modal-balance-uid').value;
+    const val = parseFloat(document.getElementById('modal-balance-val').value);
+    if (isNaN(val) || val < 0) {
+      document.getElementById('modal-balance-msg').textContent = 'Enter a valid amount (≥ 0)';
+      return;
+    }
+    await sb.from('wallets').upsert({ user_id: uid, balance: val, updated_at: new Date().toISOString() });
+    closeModal('modal-balance');
+    loadAdminData();
+  }
+
+  function openOrderModal(id, status) {
+    document.getElementById('modal-order-id').value = id;
+    document.getElementById('modal-order-sub').textContent = `Order #${String(id).padStart(6, '0')}`;
+    document.getElementById('modal-order-status').value = status;
+    document.getElementById('modal-order').classList.remove('hidden');
+  }
+
+  async function saveOrderStatus() {
+    const id = document.getElementById('modal-order-id').value;
+    const status = document.getElementById('modal-order-status').value;
+    await sb.from('orders').update({ status }).eq('id', id);
+    closeModal('modal-order');
+    loadAdminData();
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
+  }
+
+  // ─── NAV ───────────────────────────────────────────────
+  function showAdminTab(tab) {
+    ['users','orders','wallets','transactions'].forEach(t => {
+      document.getElementById('atab-' + t).classList.toggle('hidden', t !== tab);
+    });
+    document.querySelectorAll('.admin-tab').forEach((btn, i) => {
+      const tabs = ['users','orders','wallets','transactions'];
+      btn.classList.toggle('active', tabs[i] === tab);
+    });
+  }
+
+  // ─── INIT ──────────────────────────────────────────────
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session?.user) {
+      const { data: profile } = await sb.from('profiles').select('role').eq('id', session.user.id).single();
+      const isAdmin = profile?.role === 'admin' || ADMIN_EMAILS.includes(session.user.email);
+      if (isAdmin) {
+        document.getElementById('admin-auth').style.display = 'none';
+        document.getElementById('admin-panel').style.display = 'block';
+        document.getElementById('admin-email-display').textContent = session.user.email;
+        loadAdminData();
+      }
+    }
+  })();
+</script>
+</body>
+</html>
